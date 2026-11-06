@@ -261,8 +261,8 @@ function linhaHorario(r){
 function msgServico(r){
   var st=stInfo(r.status),L=[];
   L.push("*Balanço dos Serviços - "+(r.regiao||"")+"*");L.push("");
-  L.push("*Local:* "+(r.unidade||"")+(r.idObj?" (ID objeto "+r.idObj+")":(r.cc?" (CC "+r.cc+")":"")));
   L.push("*PM:* "+(r.pm||"-"));
+  L.push("*Local:* "+(r.unidade||"")+(r.idObj?" (ID objeto "+r.idObj+")":(r.cc?" (CC "+r.cc+")":"")));
   if(r.tInicio)L.push("*Data:* "+fmtData(r.tInicio));
   L.push("*Equipe:* "+(r.equipe||[]).join(", "));
   if(r.equipamento)L.push("*Equipamento:* "+r.equipamento+(r.equipId?" - "+r.equipId:""));
@@ -275,6 +275,15 @@ function msgServico(r){
   var h=linhaHorario(r);if(h)L.push(h);
   if(r.obs){L.push("");L.push("Obs.: "+r.obs);}
   return L.join("\n");
+}
+var POR_PARTE=10;
+function msgCompletas(lista){
+  var ord=lista.slice().sort(function(a,b){return String(a.tInicio||"").localeCompare(String(b.tInicio||""));}),partes=[];
+  for(var i=0;i<ord.length;i+=POR_PARTE)partes.push(ord.slice(i,i+POR_PARTE));
+  return partes.map(function(g,k){
+    var cab=partes.length>1?"*Parte "+(k+1)+" de "+partes.length+"*\n\n":"";
+    return {regs:g,txt:cab+g.map(msgServico).join("\n\n------------------------------\n\n")};
+  });
 }
 function msgBoletim(lista,titulo){
   var L=["*"+titulo+"*",""],porTipo={};
@@ -330,7 +339,7 @@ function gravar(r,acao){
 }
 
 /* ---------- navegação ---------- */
-var rota=S.token?"servicos":"entrar", editId=null, aviso="", filtro="hoje", verEquipe=false, filtroOS="pend", emailPend="";
+var rota=S.token?"servicos":"entrar", editId=null, aviso="", filtro="hoje", filtroOS="pend", emailPend="";
 function ir(t,id){rota=t;editId=id||null;render();window.scrollTo(0,0);}
 document.querySelectorAll("nav.bottom button").forEach(function(b){b.addEventListener("click",function(){ir(b.dataset.tab);});});
 function render(){
@@ -599,24 +608,31 @@ function card(r,extra){
    (def?'<div class="desc">'+esc(def)+'</div>':"")+'<div class="flags">'+flags(r)+'</div>'+(extra||"")+'</article>';
 }
 function telaServicos(v){
-  var lista=S.registros.filter(function(r){return verEquipe?r.equipeNome===S.perfil.equipe:r.autorEmail===S.perfil.email;});
+  var lista=S.registros.filter(function(r){return r.autorEmail===S.perfil.email;});
   if(filtro==="hoje")lista=lista.filter(function(r){return String(r.tInicio).slice(0,10)===hoje()||String(r.tFim).slice(0,10)===hoje();});
   if(filtro==="abertos")lista=lista.filter(function(r){return emAberto(r.status);});
   lista.sort(function(a,b){return String(b.tInicio||"").localeCompare(String(a.tInicio||""));});
-  var h='<h2>'+(verEquipe?"Serviços da coordenação":"Meus serviços")+'</h2>'+
-   '<div class="chips" id="sF" style="margin-bottom:10px">'+[["hoje","Hoje"],["abertos","Em aberto"],["todos","Todos"]].map(function(x){return '<button type="button" class="chip" aria-pressed="'+(filtro===x[0])+'" data-v="'+x[0]+'">'+x[1]+'</button>';}).join("")+
-   '<button type="button" class="chip" id="sEq" aria-pressed="'+verEquipe+'">Minha coordenação</button></div>'+
-   '<div class="actions" style="margin-bottom:14px"><button class="btn" id="sNovo" type="button">Novo atendimento</button><button class="btn sec" id="sBol" type="button"'+(lista.length?"":" disabled")+'>Compartilhar '+(filtro==="hoje"?"os de hoje":"esta lista")+'</button></div>';
+  var h='<h2>Meus serviços</h2>'+
+   '<div class="chips" id="sF" style="margin-bottom:10px">'+[["hoje","Hoje"],["abertos","Em aberto"],["todos","Todos"]].map(function(x){return '<button type="button" class="chip" aria-pressed="'+(filtro===x[0])+'" data-v="'+x[0]+'">'+x[1]+'</button>';}).join("")+'</div>'+
+   '<div class="actions" style="margin-bottom:14px"><button class="btn" id="sNovo" type="button">Novo atendimento</button><button class="btn sec" id="sBol" type="button"'+(lista.length?"":" disabled")+'>Compartilhar '+(filtro==="hoje"?"os de hoje":(filtro==="todos"?"todos (completo)":"esta lista"))+'</button></div>';
   h+=lista.length?'<div class="list" id="sL">'+lista.map(function(r){return card(r);}).join("")+'</div>':
     '<div class="empty">'+(S.registros.length?"Nenhum serviço neste filtro.":"Nenhum serviço registrado ainda. Toque em <strong>Novo atendimento</strong> para começar.")+'</div>';
   h+='<div id="sBox"></div>';
   v.innerHTML=h;
-  $("#sF").addEventListener("click",function(e){var b=e.target.closest(".chip");if(!b)return;if(b.id==="sEq")verEquipe=!verEquipe;else filtro=b.dataset.v;render();});
+  $("#sF").addEventListener("click",function(e){var b=e.target.closest(".chip");if(!b)return;filtro=b.dataset.v;render();});
   $("#sNovo").onclick=function(){ir("novo");};
   var L=$("#sL");if(L){L.addEventListener("click",function(e){var c=e.target.closest("[data-id]");if(c)ir("detalhe",c.dataset.id);});
     L.addEventListener("keydown",function(e){if(e.key==="Enter"){var c=e.target.closest("[data-id]");if(c)ir("detalhe",c.dataset.id);}});}
   $("#sBol").onclick=function(){
-    var txt=msgBoletim(lista,"Balanço dos Serviços - "+(verEquipe?S.perfil.equipe:S.perfil.nome)+" - "+fmtData(nowLocal()));
+    if(filtro==="todos"){
+      var partes=msgCompletas(lista);
+      $("#sBox").innerHTML='<h3>'+(partes.length>1?"Mensagens prontas ("+partes.length+" partes)":"Mensagem pronta")+'</h3>'+partes.map(function(pt,k){
+        return (partes.length>1?'<p class="hint">Parte '+(k+1)+' de '+partes.length+' · '+pt.regs.length+' atendimento(s)</p>':"")+'<div class="msgbox" id="b'+k+'Msg">'+esc(pt.txt)+'</div>'+botoesEnvio("b"+k);}).join("");
+      partes.forEach(function(pt,k){ligarEnvio("b"+k,pt.txt,$("#b"+k+"Msg"),function(){var t=new Date().toISOString();pt.regs.forEach(function(r){var x=achar(r.id);if(x)x.compartilhadoEm=t;});save();});});
+      $("#sBox").scrollIntoView({behavior:"smooth",block:"start"});
+      return;
+    }
+    var txt=msgBoletim(lista,"Balanço dos Serviços - "+S.perfil.nome+" - "+fmtData(nowLocal()));
     $("#sBox").innerHTML='<h3>Boletim pronto</h3><div class="msgbox" id="bMsg">'+esc(txt)+'</div>'+botoesEnvio("b");
     ligarEnvio("b",txt,$("#bMsg"),function(){var t=new Date().toISOString();lista.forEach(function(r){var x=achar(r.id);if(x)x.compartilhadoEm=t;});save();});
     $("#sBox").scrollIntoView({behavior:"smooth",block:"start"});
