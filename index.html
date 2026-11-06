@@ -258,7 +258,7 @@ function linhaHorario(r){
   var f=r.tFim?(mesmoDia(r.tInicio,r.tFim)?fmtHora(r.tFim):fmtData(r.tFim)+" "+fmtHora(r.tFim)):"em andamento";
   return "*Início do serviço:* "+(r.tInicio?fmtHora(r.tInicio):"-")+" | *Fim do serviço:* "+f;
 }
-function msgServico(r){
+function msgServico(r,completo){
   var st=stInfo(r.status),L=[];
   L.push("*Balanço dos Serviços - "+(r.regiao||"")+"*");L.push("");
   L.push("*PM:* "+(r.pm||"-"));
@@ -268,12 +268,26 @@ function msgServico(r){
   if(r.equipamento)L.push("*Equipamento:* "+r.equipamento+(r.equipId?" - "+r.equipId:""));
   L.push("*Tipo Manut.:* "+(r.tipo||""));
   if(r.impactoProd)L.push("*Impacto na produção:* "+r.impactoProd);
+  if(r.impacto)L.push("*Impacto na operação:* "+r.impacto);
   L.push(st.e+" *Status:* "+r.status);
   if(r.motivoPend&&r.status==="Pendente")L.push("*Motivo da pendência:* "+r.motivoPend);
+  if(r.falha)L.push("*Modo de falha:* "+r.falha);
+  if(r.defeito)L.push("*Defeito:* "+r.defeito);
+  if(r.diretriz)L.push("*Diretriz:* "+r.diretriz);
   if(r.tipoFalha)L.push("*Tipo Falha:* "+r.tipoFalha);
+  if(r.classe)L.push("*Classe (causa):* "+r.classe);
   if(r.acao)L.push("*Resumo:* "+r.acao);
+  if(r.acaoExec)L.push("*Ação executada:* "+r.acaoExec);
   var h=linhaHorario(r);if(h)L.push(h);
+  if(r.tAbertura)L.push("*Abertura do chamado:* "+fmtData(r.tAbertura)+" "+fmtHora(r.tAbertura));
+  if(r.tFalha)L.push("*Parada do equipamento:* "+fmtData(r.tFalha)+" "+fmtHora(r.tFalha));
   if(r.obs){L.push("");L.push("Obs.: "+r.obs);}
+  if(completo){
+    var quem=[r.autor,r.cargo,r.coordenacao||r.equipeNome,r.gerencia].filter(Boolean).join(" · ");
+    if(quem||r.osStatus)L.push("");
+    if(quem)L.push("*Registrado por:* "+quem);
+    if(r.osStatus)L.push("*Status da OS no sistema:* "+r.osStatus);
+  }
   return L.join("\n");
 }
 var POR_PARTE=10;
@@ -282,7 +296,7 @@ function msgCompletas(lista){
   for(var i=0;i<ord.length;i+=POR_PARTE)partes.push(ord.slice(i,i+POR_PARTE));
   return partes.map(function(g,k){
     var cab=partes.length>1?"*Parte "+(k+1)+" de "+partes.length+"*\n\n":"";
-    return {regs:g,txt:cab+g.map(msgServico).join("\n\n------------------------------\n\n")};
+    return {regs:g,txt:cab+g.map(function(r){return msgServico(r,true);}).join("\n\n------------------------------\n\n")};
   });
 }
 function msgBoletim(lista,titulo){
