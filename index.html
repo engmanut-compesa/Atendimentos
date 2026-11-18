@@ -62,6 +62,7 @@ input:focus,select:focus,textarea:focus,button:focus-visible,a:focus-visible{out
 .btn.block{width:100%}
 .btn[disabled]{opacity:.5;cursor:not-allowed}
 input:disabled{opacity:.55;cursor:not-allowed}
+.chip:disabled{opacity:.45;cursor:not-allowed}
 .link{background:none;border:0;color:var(--accent);font:inherit;font-weight:600;padding:10px 0;cursor:pointer;text-decoration:underline}
 .actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:8px}
 .actions .btn{flex:1 1 160px}
@@ -143,7 +144,8 @@ var TIPOS=["Corretiva emergencial","Corretiva programada","Preventiva","Preditiv
 var IMPACTOS=["Parada total","Perda parcial de vazão","Sem impacto"];
 var EQUIP=["CMB","Motor","Painel elétrico","Softstart/inversor","Transformador","Válvula/registro","Atuador/motorredutor","Bomba de esgotamento","Outro"];
 /* Listas iguais às do Alpha (IFS) - tiradas da base de OS */
-var TIPOS_FALHA=["1 - ELETRICA","2 - MECANICA","3 - ELETRONICA","4 - PREDIAL","5 - HIDRAULICA","6 - AMBIENTAL","7 - LOGICA","8 - ELETROMECANICA","9 - TELECOMUNICAÇÃO","10 - AUTOMACAO","11 - TELEMETRIA","12 - RADIO DE VOZ","13 - MEDIDORES","15 - TACOGRAFO"];
+var TIPOS_FALHA=["1 - ELETRICA","2 - MECANICA","5 - HIDRAULICA","8 - ELETROMECANICA","10 - AUTOMACAO/ELETRONICA"];
+var COF="Recolhido para oficina/COF";
 var CLASSES_FALHA=["1 - PESSOAL DESQUALIFICADO","2 - PROCEDIMENTO INCORRETO","3 - FALTA DE PROCEDIMENTO","4 - DIMENSIONAMENTO INCORRETO","5 - FALTA DE MANUTENCAO","6 - MANUTENCAO INADEQUADA","7 - FALTA DE PECA DE REPOSICAO","8 - INSUFICIENCIA DE MAO-DE-OBRA","9 - FALHA DE COMUNICACAO","10 - FALTA DE SEGURANCA PATRIMONIAL","11 - DEFICIENCIA SERVICO DE TERCEIRO","12 - VIDA UTIL ULTRAPASSADA","13 - FENOMENO NATURAL","14 - NEGLIGENCIA DE PESSOAL","15 - ACAO ANIMAL","16 - FALHA NO FORNECIMENTO DE ENERGIA ELETRICA CONCESSIONARIA","17 - ADEQUACAO DA UNIDADE","18 - MANUTENCAO PLANEJADA"];
 var ACOES_EXEC=["1 - INSPECIONADO","2 - DIAGNOSTICADO","3 - MEDIDO","4 - LUBRIFICADO","5 - SUBSTITUIDO","6 - CALIBRADO/AJUSTADO","7 - LIMPO","8 - DADOS COLETADOS","9 - DESOBSTRUIDO","10 - REMOVIDO","11 - TESTADO","12 - MONTADO","13 - DESMONTADO","14 - INSTALADO","15 - DESENVOLVIDO","16 - CADASTRADO","17 - RELOCADO","18 - APLICADO","19 - CONFECCIONADO","20 - CONSTRUIDO","21 - PROGRAMADO","22 - PARAMETRIZADO","23 - PESCADO","24 - TRANSPORTADO","25 - ACOPLADO","26 - ALINHADO","27 - RECUPERADO","28 - ICADO","29 - PROJETADO","30 - PODADO","31 - GARANTIA","32 - ADQUIRIDO"];
 var GERENCIAS=["GAD","GAS","GGE","GMM","GPA","GTO"];
@@ -270,6 +272,7 @@ function msgServico(r){
   if(r.impactoProd||r.impacto)L.push("*Impacto na produção:* "+(r.impactoProd||r.impacto));
   L.push(st.e+" *Status:* "+r.status);
   if(r.motivoPend&&r.status==="Pendente")L.push("*Motivo da pendência:* "+r.motivoPend);
+  if(r.recolhidoCOF&&r.reserva)L.push("*Equipamento recolhido para oficina/COF*\n*Equipamento reserva instalado:* "+r.reserva);
   if(r.tipoFalha)L.push("*Tipo Falha:* "+r.tipoFalha);
   if(r.acao)L.push("*Resumo:* "+r.acao);
   var h=linhaHorario(r);if(h)L.push(h);
@@ -491,11 +494,12 @@ function telaForm(v){
    '<div class="field"><label for="fEqId">Identificação do equipamento</label><input id="fEqId" placeholder="Ex.: CMB 02" value="'+esc(r.equipId)+'"></div>'+
    '<h3>Falha</h3><div class="field"><label>Teve impacto na produção? <span class="req">*</span></label><div class="chips" data-grp="impactoProd">'+["Sim","Não"].map(function(t){return '<button type="button" class="chip" aria-pressed="'+(r.impactoProd===t)+'" data-v="'+t+'">'+t+'</button>';}).join("")+'</div>'+
    '<span class="hint" id="fTipoInfo"></span></div>'+
-   '<div class="field"><label for="fTF">Tipo de falha <span class="req">*</span></label><select id="fTF">'+opts(TIPOS_FALHA,r.tipoFalha,"Escolha")+'</select><span class="hint">Mesma lista do Alpha.</span></div>'+
+   '<div class="field"><label for="fTF">Tipo de falha <span class="req">*</span></label><select id="fTF">'+opts(r.tipoFalha&&TIPOS_FALHA.indexOf(r.tipoFalha)<0?TIPOS_FALHA.concat([r.tipoFalha]):TIPOS_FALHA,r.tipoFalha,"Escolha")+'</select><span class="hint">Mesma lista do Alpha.</span></div>'+
    '<div class="field"><label for="fAcao">O que foi feito (feedback)</label><textarea id="fAcao" placeholder="Ex.: retirados e lavados os filtros, limpeza dos ventiladores">'+esc(r.acao)+'</textarea></div>'+
    '<h3>Equipe presente</h3><div class="chips" id="fPessoas">'+pessoas.map(function(n){return '<button type="button" class="chip" aria-pressed="'+((r.equipe||[]).indexOf(n)>=0)+'" data-v="'+esc(n)+'">'+esc(n)+'</button>';}).join("")+'</div>'+
    '<div class="inline-edit" style="margin-top:8px"><input id="fNovaP" aria-label="Adicionar pessoa" placeholder="Adicionar nome"><button type="button" class="btn sec small" id="fAddP">Adicionar</button></div>'+
-   '<h3>Situação</h3><div class="field"><label for="fSt">Status <span class="req">*</span></label><select id="fSt">'+opts(STATUS.map(function(s){return s.v;}),r.status,"Escolha")+'</select></div>'+
+   '<h3>Situação</h3><div class="field"><label for="fSt">Status <span class="req">*</span></label><select id="fSt">'+opts(STATUS.map(function(s){return s.v;}),r.recolhidoCOF?COF:r.status,"Escolha")+'</select></div>'+
+   '<div class="field" id="fResBox" hidden><label>Foi instalado outro equipamento no lugar? <span class="req">*</span></label><div class="chips" data-grp="reserva">'+["Sim","Não"].map(function(t){return '<button type="button" class="chip" aria-pressed="'+(r.reserva===t)+'" data-v="'+t+'">'+t+'</button>';}).join("")+'</div><span class="hint" id="fResInfo"></span></div>'+
    '<div class="field" id="fMotBox" hidden><label for="fMot">Motivo da pendência (por que está parado) <span class="req">*</span></label><select id="fMot">'+opts(MOTIVOS_PEND,MOTIVOS_PEND.indexOf(r.motivoPend)>=0?r.motivoPend:"","Escolha")+'<option value="'+OUTRO_MOT+'"'+(r.motivoPend&&MOTIVOS_PEND.indexOf(r.motivoPend)<0?" selected":"")+'>Outro (digitar)</option></select>'+
    '<input id="fMotTxt" placeholder="Descreva o motivo" value="'+esc(r.motivoPend&&MOTIVOS_PEND.indexOf(r.motivoPend)<0?r.motivoPend:"")+'" hidden></div>'+
    '<h3>Horários do serviço</h3>'+
@@ -505,13 +509,16 @@ function telaForm(v){
    '<p class="err" id="fErr" role="alert"></p><div class="actions"><button class="btn" type="submit">Salvar</button><button class="btn sec" type="button" id="fCancel">Cancelar</button></div></form>';
   v.innerHTML=h;
 
-  var sel={impactoProd:r.impactoProd};
+  var sel={impactoProd:r.impactoProd,reserva:r.reserva||""};
   function tipoInfo(){$("#fTipoInfo").textContent=sel.impactoProd==="Sim"?"Tipo de manutenção: Corretiva emergencial":(sel.impactoProd==="Não"?"Tipo de manutenção: Corretiva programada":"");}
-  v.querySelectorAll(".chips[data-grp]").forEach(function(g){g.addEventListener("click",function(e){var b=e.target.closest(".chip");if(!b)return;sel[g.dataset.grp]=b.dataset.v;g.querySelectorAll(".chip").forEach(function(c){c.setAttribute("aria-pressed",c===b);});tipoInfo();});});
+  v.querySelectorAll(".chips[data-grp]").forEach(function(g){g.addEventListener("click",function(e){var b=e.target.closest(".chip");if(!b)return;sel[g.dataset.grp]=b.dataset.v;g.querySelectorAll(".chip").forEach(function(c){c.setAttribute("aria-pressed",c===b);});tipoInfo();motBox();});});
   tipoInfo();
-  function motBox(){var p=$("#fSt").value==="Pendente";$("#fMotBox").hidden=!p;$("#fMotTxt").hidden=!(p&&$("#fMot").value===OUTRO_MOT);
-    if(p)$("#t_tFim").value="";$("#t_tFim").disabled=p;$("#tFimAgora").disabled=p;
-    $("#tFimHint").textContent=p?"Atendimento pendente não tem fim do serviço. Informe quando for resolvido.":"Obrigatório para encerrar como resolvido.";}
+  function motBox(){var st=$("#fSt").value,p=st==="Pendente",c=st===COF,trava=p||(c&&sel.reserva!=="Sim");
+    $("#fMotBox").hidden=!p;$("#fMotTxt").hidden=!(p&&$("#fMot").value===OUTRO_MOT);
+    $("#fResBox").hidden=!c;
+    $("#fResInfo").textContent=c&&sel.reserva==="Sim"?"Com reserva instalada o atendimento fica como Resolvido: informe o fim do serviço.":(c&&sel.reserva==="Não"?"Sem reserva a OS continua em aberto: o fim do serviço fica bloqueado.":"");
+    if(trava)$("#t_tFim").value="";$("#t_tFim").disabled=trava;$("#tFimAgora").disabled=trava;
+    $("#tFimHint").textContent=p?"Atendimento pendente não tem fim do serviço. Informe quando for resolvido.":(c&&sel.reserva!=="Sim"?"Equipamento recolhido sem reserva: a OS fica em aberto até resolver.":"Obrigatório para encerrar como resolvido.");}
   $("#fSt").addEventListener("change",motBox);$("#fMot").addEventListener("change",function(){motBox();if(!$("#fMotTxt").hidden)$("#fMotTxt").focus();});motBox();
   $("#fPessoas").addEventListener("click",function(e){var b=e.target.closest(".chip");if(b)b.setAttribute("aria-pressed",b.getAttribute("aria-pressed")!=="true");});
   $("#fAddP").onclick=function(){var n=$("#fNovaP").value.trim();if(!n)return;if(S.pessoas.indexOf(n)<0){S.pessoas.push(n);save();}
@@ -548,8 +555,9 @@ function telaForm(v){
       tipoFalha:$("#fTF").value,acao:$("#fAcao").value.trim(),
       motivoPend:$("#fSt").value==="Pendente"?($("#fMot").value===OUTRO_MOT?$("#fMotTxt").value.trim():$("#fMot").value):"",
       equipe:Array.prototype.map.call(v.querySelectorAll('#fPessoas .chip[aria-pressed="true"]'),function(c){return c.dataset.v;}),
-      status:$("#fSt").value,obs:$("#fObs").value.trim(),
-      tInicio:$("#t_tInicio").value,tFim:$("#fSt").value==="Pendente"?"":$("#t_tFim").value,tAbertura:r.tAbertura||"",tFalha:r.tFalha||""});
+      recolhidoCOF:$("#fSt").value===COF,reserva:$("#fSt").value===COF?(sel.reserva||""):"",
+      status:$("#fSt").value===COF&&sel.reserva==="Sim"?"Resolvido":$("#fSt").value,obs:$("#fObs").value.trim(),
+      tInicio:$("#t_tInicio").value,tFim:$("#fSt").value==="Pendente"||($("#fSt").value===COF&&sel.reserva!=="Sim")?"":$("#t_tFim").value,tAbertura:r.tAbertura||"",tFalha:r.tFalha||""});
     var erro=validar(r);
     if(erro){$("#fErr").textContent=erro;return;}
     gravar(r,base?"atualizou":"criou");
@@ -571,6 +579,8 @@ function validar(r){
   if(!r.status)return "Escolha o status.";
   if(r.status==="Pendente"&&!r.motivoPend)return "Informe o motivo da pendência (por que está parado).";
   if(r.status==="Pendente"&&r.tFim)return "Atendimento pendente não pode ter fim do serviço.";
+  if(r.recolhidoCOF&&!r.reserva)return "Responda se foi instalado outro equipamento no lugar.";
+  if(r.status===COF&&r.tFim)return "Equipamento recolhido sem reserva não pode ter fim do serviço.";
   if(r.status==="Resolvido"){
     if(!r.tFim)return "Para encerrar como resolvido, informe o fim do serviço.";
     if(!r.acao)return "Para encerrar, descreva o que foi feito.";
@@ -648,7 +658,7 @@ function telaOS(v){
    '<div class="chips" id="oF" style="margin-bottom:12px">'+[["pend","Pendentes"],["todas","Todas"]].map(function(x){return '<button type="button" class="chip" aria-pressed="'+(filtroOS===x[0])+'" data-v="'+x[0]+'">'+x[1]+'</button>';}).join("")+'</div>';
   h+=lista.length?'<div class="list" id="oL">'+lista.map(function(r){
     return card(r,'<div class="inline-edit"><input aria-label="Número da PM" inputmode="numeric" placeholder="Número da PM" value="'+esc(r.pm)+'" data-pm="'+esc(r.id)+'"><button type="button" class="btn sec small" data-savepm="'+esc(r.id)+'">Salvar PM</button></div>'+
-      '<div class="chips">'+OSST.map(function(s){return '<button type="button" class="chip" data-os="'+esc(r.id)+'" data-v="'+s+'" aria-pressed="'+((r.osStatus||"Não lançada")===s)+'">'+s+'</button>';}).join("")+'</div>');
+      '<div class="chips">'+OSST.map(function(s){var bloq=s==="Fechada no sistema"&&emAberto(r.status);return '<button type="button" class="chip" data-os="'+esc(r.id)+'" data-v="'+s+'" aria-pressed="'+((r.osStatus||"Não lançada")===s)+'"'+(bloq?' disabled title="Atendimento ainda em aberto"':'')+'>'+s+'</button>';}).join("")+'</div>'+(emAberto(r.status)?'<p class="hint">A OS só pode ser fechada quando o atendimento estiver resolvido.</p>':''));
   }).join("")+'</div>':'<div class="empty">Nenhuma OS pendente.</div>';
   v.innerHTML=h;
   $("#oF").addEventListener("click",function(e){var b=e.target.closest(".chip");if(!b)return;filtroOS=b.dataset.v;render();});
@@ -656,7 +666,7 @@ function telaOS(v){
   L.addEventListener("click",function(e){
     var t=e.target;
     if(t.dataset.savepm){osAtualizar(t.dataset.savepm,{pm:L.querySelector('[data-pm="'+t.dataset.savepm+'"]').value.trim()});return;}
-    if(t.dataset.os){osAtualizar(t.dataset.os,{osStatus:t.dataset.v});return;}
+    if(t.dataset.os){if(t.disabled)return;osAtualizar(t.dataset.os,{osStatus:t.dataset.v});return;}
     if(t.closest("input,button"))return;
     var c=t.closest("[data-id]");if(c)ir("detalhe",c.dataset.id);
   });
