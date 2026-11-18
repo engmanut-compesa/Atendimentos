@@ -103,7 +103,8 @@ details summary{cursor:pointer;font-weight:600;padding:8px 0}
 .login{max-width:440px;margin:24px auto 0}
 .senha-wrap{position:relative}
 .senha-wrap input{padding-right:96px}
-.olho{position:absolute;right:6px;top:50%;transform:translateY(-50%);font:inherit;font-size:14px;font-weight:600;background:var(--accent-soft);color:var(--ink);border:0;border-radius:6px;padding:8px 10px;cursor:pointer;min-height:36px}
+.olho{position:absolute;right:6px;top:50%;transform:translateY(-50%);background:var(--accent-soft);color:var(--ink);border:0;border-radius:6px;padding:6px 10px;cursor:pointer;min-height:40px;min-width:44px;display:flex;align-items:center;justify-content:center}
+.olho svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .brand{font-family:var(--f-display);font-weight:700;font-size:30px;text-transform:uppercase;letter-spacing:.02em;margin:8px 0 4px}
 .marca{display:flex;align-items:center;gap:10px;min-width:0}
 .logo{display:block;height:34px;width:auto;border-radius:7px;background:#0150a2}
@@ -183,7 +184,7 @@ function $(s,r){return (r||document).querySelector(s);}
 function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];});}
 function uid(){return "a"+Date.now().toString(36)+Math.random().toString(36).slice(2,8);}
 function pad(n){return (n<10?"0":"")+n;}
-function nowLocal(){var d=new Date();return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate())+"T"+pad(d.getHours())+":"+pad(d.getMinutes());}
+function nowLocal(minAdd){var d=new Date(Date.now()+(minAdd||0)*60000);return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate())+"T"+pad(d.getHours())+":"+pad(d.getMinutes());}
 function toDate(s){if(!s)return null;var d=new Date(s);return isNaN(d)?null:d;}
 function fmtData(s){var d=toDate(s);return d?pad(d.getDate())+"/"+pad(d.getMonth()+1)+"/"+String(d.getFullYear()).slice(2):"";}
 function fmtHora(s){var d=toDate(s);return d?pad(d.getHours())+":"+pad(d.getMinutes()):"";}
@@ -398,6 +399,7 @@ function telaCadastrar(v){
    campoOutro("cGer","Gerência",GERENCIAS)+campoOutro("cCoord","Coordenação",COORDENACOES)+
    '<div class="field"><label for="cReg">Regional <span class="req">*</span></label><select id="cReg" required>'+opts(S.regioes,"","Escolha")+'</select></div>'+
    '<div class="field"><label for="cSenha">Crie uma senha <span class="req">*</span></label><input id="cSenha" type="password" autocomplete="new-password" minlength="6" required><span class="hint">Mínimo de 6 caracteres.</span></div>'+
+   '<div class="field"><label for="cSenha2">Confirme a senha <span class="req">*</span></label><input id="cSenha2" type="password" autocomplete="new-password" minlength="6" required></div>'+
    '<p class="err" id="cErr" role="alert"></p><button class="btn block" type="submit">Enviar código</button></form>'+
    '<button class="link" id="cVolta" type="button">Já tenho cadastro</button></div>';
   $("#cVolta").onclick=function(){aviso="";ir("entrar");};
@@ -408,6 +410,7 @@ function telaCadastrar(v){
     if(!emailOk(d.email)){$("#cErr").textContent="Digite um e-mail válido.";return;}
     if(!d.nome||!d.cargo||!d.gerencia||!d.coordenacao||!d.regiao){$("#cErr").textContent="Preencha nome, cargo, gerência, coordenação e regional.";return;}
     if(d.senha.length<6){$("#cErr").textContent="A senha precisa ter pelo menos 6 caracteres.";return;}
+    if(d.senha!==$("#cSenha2").value.trim()){$("#cErr").textContent="As senhas não são iguais. Digite a mesma senha nos dois campos.";return;}
     travar(f,true);
     api("cadastrar",d).then(function(j){if(!j.ok)throw new Error(j.erro);emailPend=d.email;aviso="Enviamos um código para "+d.email+". Confira também a caixa de spam.";ir("confirmar");})
       .catch(function(err){$("#cErr").textContent=online()?err.message:"Sem internet. O cadastro precisa de conexão.";travar(f,false);});
@@ -431,6 +434,7 @@ function telaRecuperar(v){
    '<button class="btn sec block" type="button" id="rEnviar">Enviar código</button>'+
    '<div class="field" style="margin-top:14px"><label for="rCod">Código recebido</label><input id="rCod" inputmode="numeric" maxlength="6"></div>'+
    '<div class="field"><label for="rSenha">Nova senha</label><input id="rSenha" type="password" autocomplete="new-password" minlength="6"></div>'+
+   '<div class="field"><label for="rSenha2">Confirme a nova senha</label><input id="rSenha2" type="password" autocomplete="new-password" minlength="6"></div>'+
    '<p class="err" id="rErr" role="alert"></p><button class="btn block" type="submit">Salvar nova senha e entrar</button></form>'+
    '<button class="link" id="rVolta" type="button">Voltar</button></div>';
   $("#rVolta").onclick=function(){aviso="";ir("entrar");};
@@ -440,6 +444,7 @@ function telaRecuperar(v){
       .catch(function(err){$("#rErr").textContent=err.message;b.disabled=false;});};
   $("#fR").addEventListener("submit",function(e){e.preventDefault();var f=this;
     if($("#rSenha").value.trim().length<6){$("#rErr").textContent="A senha precisa ter pelo menos 6 caracteres.";return;}
+    if($("#rSenha").value.trim()!==$("#rSenha2").value.trim()){$("#rErr").textContent="As senhas não são iguais. Digite a mesma senha nos dois campos.";return;}
     travar(f,true);
     api("redefinir",{email:$("#rEmail").value.trim().toLowerCase(),codigo:$("#rCod").value.trim(),senha:$("#rSenha").value.trim()}).then(function(j){if(!j.ok)throw new Error(j.erro);entrou(j);})
       .catch(function(err){$("#rErr").textContent=err.message;travar(f,false);});
@@ -449,8 +454,10 @@ function olhosSenha(raiz){
   (raiz||document).querySelectorAll('input[type="password"]').forEach(function(inp){
     if(inp.dataset.olho)return;inp.dataset.olho="1";
     var w=document.createElement("div");w.className="senha-wrap";inp.parentNode.insertBefore(w,inp);w.appendChild(inp);
-    var b=document.createElement("button");b.type="button";b.className="olho";b.setAttribute("aria-label","Mostrar senha");b.textContent="Mostrar";
-    b.onclick=function(){var ver=inp.type==="password";inp.type=ver?"text":"password";b.textContent=ver?"Ocultar":"Mostrar";b.setAttribute("aria-label",ver?"Ocultar senha":"Mostrar senha");};
+    var OLHO='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></svg>';
+    var RISCO='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"/><circle cx="12" cy="12" r="3"/><path d="M3 3l18 18"/></svg>';
+    var b=document.createElement("button");b.type="button";b.className="olho";b.setAttribute("aria-label","Mostrar senha");b.title="Mostrar senha";b.innerHTML=OLHO;
+    b.onclick=function(){var ver=inp.type==="password";inp.type=ver?"text":"password";b.innerHTML=ver?RISCO:OLHO;b.setAttribute("aria-label",ver?"Ocultar senha":"Mostrar senha");b.title=ver?"Ocultar senha":"Mostrar senha";};
     w.appendChild(b);
   });
 }
@@ -503,8 +510,8 @@ function telaForm(v){
    '<div class="field" id="fMotBox" hidden><label for="fMot">Motivo da pendência (por que está parado) <span class="req">*</span></label><select id="fMot">'+opts(MOTIVOS_PEND,MOTIVOS_PEND.indexOf(r.motivoPend)>=0?r.motivoPend:"","Escolha")+'<option value="'+OUTRO_MOT+'"'+(r.motivoPend&&MOTIVOS_PEND.indexOf(r.motivoPend)<0?" selected":"")+'>Outro (digitar)</option></select>'+
    '<input id="fMotTxt" placeholder="Descreva o motivo" value="'+esc(r.motivoPend&&MOTIVOS_PEND.indexOf(r.motivoPend)<0?r.motivoPend:"")+'" hidden></div>'+
    '<h3>Horários do serviço</h3>'+
-   '<div class="tstep"><div class="field"><label for="t_tInicio">Início do serviço <span class="req">*</span></label><input type="datetime-local" id="t_tInicio" value="'+esc(r.tInicio||"")+'"></div><button type="button" class="btn sec small" data-agora="tInicio">Agora</button></div>'+
-   '<div class="tstep"><div class="field"><label for="t_tFim">Fim do serviço</label><input type="datetime-local" id="t_tFim" value="'+esc(r.tFim||"")+'"><span class="hint" id="tFimHint">Obrigatório para encerrar como resolvido.</span></div><button type="button" class="btn sec small" data-agora="tFim" id="tFimAgora">Agora</button></div>'+
+   '<div class="tstep"><div class="field"><label for="t_tInicio">Início do serviço <span class="req">*</span></label><input type="datetime-local" id="t_tInicio" max="'+nowLocal(5)+'" value="'+esc(r.tInicio||"")+'"></div><button type="button" class="btn sec small" data-agora="tInicio">Agora</button></div>'+
+   '<div class="tstep"><div class="field"><label for="t_tFim">Fim do serviço</label><input type="datetime-local" id="t_tFim" max="'+nowLocal(5)+'" value="'+esc(r.tFim||"")+'"><span class="hint" id="tFimHint">Obrigatório para encerrar como resolvido.</span></div><button type="button" class="btn sec small" data-agora="tFim" id="tFimAgora">Agora</button></div>'+
    '<div class="field"><label for="fObs">Observações</label><textarea id="fObs" placeholder="Ex.: os filtros já ficaram instalados">'+esc(r.obs)+'</textarea></div>'+
    '<p class="err" id="fErr" role="alert"></p><div class="actions"><button class="btn" type="submit">Salvar</button><button class="btn sec" type="button" id="fCancel">Cancelar</button></div></form>';
   v.innerHTML=h;
@@ -573,6 +580,8 @@ function validar(r){
   if(!r.impactoProd)return "Responda se teve impacto na produção.";
   if(!r.tipoFalha)return "Escolha o tipo de falha.";
   if(!r.tInicio)return "Informe o horário de início do serviço.";
+  if(r.tInicio>nowLocal(5))return "O início do serviço não pode ser no futuro. Confira a data e a hora.";
+  if(r.tFim&&r.tFim>nowLocal(5))return "O fim do serviço não pode ser no futuro. Confira a data e a hora.";
   if(r.tFim&&r.tFim<r.tInicio)return "O fim do serviço está antes do início. Corrija os horários.";
   if(r.tAbertura&&r.tAbertura>r.tInicio)return "A abertura do chamado está depois do início do serviço.";
   if(r.tFalha&&r.tAbertura&&r.tFalha>r.tAbertura)return "A parada do equipamento está depois da abertura do chamado.";
