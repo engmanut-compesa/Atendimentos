@@ -141,7 +141,8 @@ function emailOk(e){return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);}
 (function(){
 "use strict";
 var KEY="registro-atendimentos-v2";
-var TIPOS=["Corretiva emergencial","Corretiva programada","Preventiva","Preditiva","Inspeção"];
+var TIPOS_SEM_IMPACTO=["Corretiva planejada","Obras e melhorias","Preventiva","Preditiva","Detectiva"];
+var TIPOS=["Corretiva emergencial"].concat(TIPOS_SEM_IMPACTO,["Corretiva programada","Inspeção"]);
 var IMPACTOS=["Parada total","Perda parcial de vazão","Sem impacto"];
 var EQUIP=["CMB","Motor","Painel elétrico","Softstart/inversor","Transformador","Válvula/registro","Atuador/motorredutor","Bomba de esgotamento","Outro"];
 /* Listas iguais às do Alpha (IFS) - tiradas da base de OS */
@@ -501,6 +502,7 @@ function telaForm(v){
    '<div class="field"><label for="fEqId">Identificação do equipamento</label><input id="fEqId" placeholder="Ex.: CMB 02" value="'+esc(r.equipId)+'"></div>'+
    '<h3>Falha</h3><div class="field"><label>Teve impacto na produção? <span class="req">*</span></label><div class="chips" data-grp="impactoProd">'+["Sim","Não"].map(function(t){return '<button type="button" class="chip" aria-pressed="'+(r.impactoProd===t)+'" data-v="'+t+'">'+t+'</button>';}).join("")+'</div>'+
    '<span class="hint" id="fTipoInfo"></span></div>'+
+   '<div class="field" id="fTipoBox" hidden><label for="fTipo">Tipo de manutenção <span class="req">*</span></label><select id="fTipo">'+opts(r.tipo&&r.tipo!=="Corretiva emergencial"&&TIPOS_SEM_IMPACTO.indexOf(r.tipo)<0?TIPOS_SEM_IMPACTO.concat([r.tipo]):TIPOS_SEM_IMPACTO,r.impactoProd==="Não"?r.tipo:"","Escolha")+'</select></div>'+
    '<div class="field"><label for="fTF">Tipo de falha <span class="req">*</span></label><select id="fTF">'+opts(r.tipoFalha&&TIPOS_FALHA.indexOf(r.tipoFalha)<0?TIPOS_FALHA.concat([r.tipoFalha]):TIPOS_FALHA,r.tipoFalha,"Escolha")+'</select><span class="hint">Mesma lista do Alpha.</span></div>'+
    '<div class="field"><label for="fAcao">O que foi feito (feedback)</label><textarea id="fAcao" placeholder="Ex.: retirados e lavados os filtros, limpeza dos ventiladores">'+esc(r.acao)+'</textarea></div>'+
    '<h3>Equipe presente</h3><div class="chips" id="fPessoas">'+pessoas.map(function(n){return '<button type="button" class="chip" aria-pressed="'+((r.equipe||[]).indexOf(n)>=0)+'" data-v="'+esc(n)+'">'+esc(n)+'</button>';}).join("")+'</div>'+
@@ -517,7 +519,7 @@ function telaForm(v){
   v.innerHTML=h;
 
   var sel={impactoProd:r.impactoProd,reserva:r.reserva||""};
-  function tipoInfo(){$("#fTipoInfo").textContent=sel.impactoProd==="Sim"?"Tipo de manutenção: Corretiva emergencial":(sel.impactoProd==="Não"?"Tipo de manutenção: Corretiva programada":"");}
+  function tipoInfo(){$("#fTipoInfo").textContent=sel.impactoProd==="Sim"?"Tipo de manutenção: Corretiva emergencial":"";$("#fTipoBox").hidden=sel.impactoProd!=="Não";}
   v.querySelectorAll(".chips[data-grp]").forEach(function(g){g.addEventListener("click",function(e){var b=e.target.closest(".chip");if(!b)return;sel[g.dataset.grp]=b.dataset.v;g.querySelectorAll(".chip").forEach(function(c){c.setAttribute("aria-pressed",c===b);});tipoInfo();motBox();});});
   tipoInfo();
   function motBox(){var st=$("#fSt").value,p=st==="Pendente",c=st===COF,trava=p||(c&&sel.reserva!=="Sim");
@@ -558,7 +560,7 @@ function telaForm(v){
     var u=digitada?null:S.unidades.find(function(x){return x.nome===un&&x.regiao===$("#fReg").value;});
     Object.assign(r,{regiao:$("#fReg").value,unidade:un,unidadeDigitada:digitada,idObj:u?u.idObj:"",cc:u?u.cc:"",pm:$("#fPm").value.trim(),
       equipamento:$("#fEq").value,equipId:$("#fEqId").value.trim(),impactoProd:sel.impactoProd||"",
-      tipo:sel.impactoProd==="Sim"?"Corretiva emergencial":(sel.impactoProd==="Não"?"Corretiva programada":""),
+      tipo:sel.impactoProd==="Sim"?"Corretiva emergencial":(sel.impactoProd==="Não"?$("#fTipo").value:""),
       tipoFalha:$("#fTF").value,acao:$("#fAcao").value.trim(),
       motivoPend:$("#fSt").value==="Pendente"?($("#fMot").value===OUTRO_MOT?$("#fMotTxt").value.trim():$("#fMot").value):"",
       equipe:Array.prototype.map.call(v.querySelectorAll('#fPessoas .chip[aria-pressed="true"]'),function(c){return c.dataset.v;}),
@@ -578,6 +580,7 @@ function validar(r){
   if(!r.pm)return "Informe o número da PM.";
   if(!r.equipamento)return "Escolha o equipamento.";
   if(!r.impactoProd)return "Responda se teve impacto na produção.";
+  if(!r.tipo)return "Escolha o tipo de manutenção.";
   if(!r.tipoFalha)return "Escolha o tipo de falha.";
   if(!r.tInicio)return "Informe o horário de início do serviço.";
   if(r.tInicio>nowLocal(5))return "O início do serviço não pode ser no futuro. Confira a data e a hora.";
