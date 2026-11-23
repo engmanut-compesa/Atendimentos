@@ -692,8 +692,8 @@ function osAtualizar(id,mud){
 }
 
 /* ---------- aviso de mudança de endereço ---------- */
-var NOVO_ENDERECO="https://engmanut-compesa.github.io/Atendimentos/";
-if(location.hostname==="joaopedrojp210-create.github.io"){
+var NOVO_ENDERECO="https://atendimentos-compesa.netlify.app/";
+if(/\.github\.io$/.test(location.hostname)){
   var av=document.createElement("div");av.className="notice warn";av.setAttribute("role","status");
   av.innerHTML='<strong>O app mudou de endereço.</strong> Confira se no topo aparece "Sincronizado" e abra o novo: <a href="'+NOVO_ENDERECO+'">'+NOVO_ENDERECO.replace("https://","")+'</a>. No novo, entre com o mesmo e-mail e senha e instale de novo na tela inicial.';
   document.querySelector(".wrap").insertBefore(av,document.querySelector(".wrap").firstChild);
