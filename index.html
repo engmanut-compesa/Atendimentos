@@ -262,23 +262,25 @@ function linhaHorario(r){
   var f=r.tFim?(mesmoDia(r.tInicio,r.tFim)?fmtHora(r.tFim):fmtData(r.tFim)+" "+fmtHora(r.tFim)):"em andamento";
   return "*Início do serviço:* "+(r.tInicio?fmtHora(r.tInicio):"-")+" | *Fim do serviço:* "+f;
 }
+function data4(s){var d=toDate(s);return d?pad(d.getDate())+"/"+pad(d.getMonth()+1)+"/"+d.getFullYear():"";}
 function msgServico(r){
-  var st=stInfo(r.status),L=[];
-  L.push("*Balanço dos Serviços - "+(r.regiao||"")+"*");L.push("");
-  L.push("*PM:* "+(r.pm||"-"));
-  L.push("*Local:* "+(r.unidade||"")+(r.idObj?" (ID objeto "+r.idObj+")":(r.cc?" (CC "+r.cc+")":"")));
-  if(r.tInicio)L.push("*Data:* "+fmtData(r.tInicio));
-  L.push("*Equipe:* "+(r.equipe||[]).join(", "));
-  if(r.equipamento)L.push("*Equipamento:* "+r.equipamento+(r.equipId?" - "+r.equipId:""));
-  L.push("*Tipo Manut.:* "+(r.tipo||""));
-  if(r.impactoProd||r.impacto)L.push("*Impacto na produção:* "+(r.impactoProd||r.impacto));
-  L.push(st.e+" *Status:* "+r.status);
-  if(r.motivoPend&&r.status==="Pendente")L.push("*Motivo da pendência:* "+r.motivoPend);
-  if(r.recolhidoCOF&&r.reserva)L.push("*Equipamento recolhido para oficina/COF*\n*Equipamento reserva instalado:* "+r.reserva);
-  if(r.tipoFalha)L.push("*Tipo Falha:* "+r.tipoFalha);
-  if(r.acao)L.push("*Resumo:* "+r.acao);
-  var h=linhaHorario(r);if(h)L.push(h);
-  if(r.obs){L.push("");L.push("Obs.: "+r.obs);}
+  var st=stInfo(r.status),L=[],SEP="--------------------------------------";
+  L.push("🛠️ *MANUTENÇÃO REGISTRADA* 🛠️",SEP,"","*PM: "+(r.pm||"-")+"*","");
+  L.push("📍 *Regional:* "+(r.regiao||"-"));
+  L.push("* *Unidade:* "+(r.unidade||"")+(r.idObj?" (ID objeto "+r.idObj+")":(r.cc?" (CC "+r.cc+")":"")));
+  if(r.tInicio)L.push("* *Data:* "+data4(r.tInicio));
+  if(r.tInicio)L.push("* *Início:* "+fmtHora(r.tInicio)+"h");
+  L.push("* *Fim:* "+(r.tFim?(mesmoDia(r.tInicio,r.tFim)?fmtHora(r.tFim)+"h":data4(r.tFim)+" "+fmtHora(r.tFim)+"h"):"em andamento"));
+  if(r.tipo)L.push("* *Tipo Manut.:* "+r.tipo);
+  if((r.equipe||[]).length)L.push("* *Equipe:* "+r.equipe.join(", "));
+  L.push("",SEP,"");
+  if(r.equipamento)L.push("⚙️ *Equipamento:* "+r.equipamento+(r.equipId?" - "+r.equipId:""));
+  if(r.tipoFalha)L.push("- *Falha identificada:* "+r.tipoFalha);
+  if(r.acao)L.push("- *Feedback:* "+r.acao);
+  if(r.motivoPend&&r.status==="Pendente")L.push("- *Motivo da pendência:* "+r.motivoPend);
+  if(r.recolhidoCOF&&r.reserva)L.push("- *Recolhido para oficina/COF* | *Reserva instalada:* "+r.reserva);
+  if(r.obs)L.push("- *Obs.:* "+r.obs);
+  L.push("","*Status: "+(r.status||"-")+"* "+st.e);
   return L.join("\n");
 }
 var POR_PARTE=10;
