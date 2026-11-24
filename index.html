@@ -144,7 +144,7 @@ var KEY="registro-atendimentos-v2";
 var TIPOS_SEM_IMPACTO=["Corretiva planejada","Obras e melhorias","Preventiva","Preditiva","Detectiva"];
 var TIPOS=["Corretiva emergencial"].concat(TIPOS_SEM_IMPACTO,["Corretiva programada","Inspeção"]);
 var IMPACTOS=["Parada total","Perda parcial de vazão","Sem impacto"];
-var EQUIP=["CMB","Motor","Painel elétrico","Softstart/inversor","Transformador","Válvula/registro","Atuador/motorredutor","Bomba de esgotamento","Outro"];
+var EQUIP=["Bomba","Motor","Painel elétrico","Softstart/inversor","Transformador","Válvula/registro","Atuador/motorredutor","Bomba de esgotamento","Outro"];
 /* Listas iguais às do Alpha (IFS) - tiradas da base de OS */
 var TIPOS_FALHA=["1 - ELETRICA","2 - MECANICA","5 - HIDRAULICA","8 - ELETROMECANICA","10 - AUTOMACAO/ELETRONICA"];
 var COF="Recolhido para oficina/COF";
@@ -498,7 +498,7 @@ function telaForm(v){
    '<div class="field"><label for="fUn">Unidade <span class="req">*</span></label><select id="fUn"></select>'+
    '<input id="fUnOutra" placeholder="Digite o nome da unidade" hidden><span class="hint" id="fUnInfo"></span></div>'+
    '<div class="row"><div class="field"><label for="fPm">Número da PM <span class="req">*</span></label><input id="fPm" inputmode="numeric" placeholder="Ex.: 281708" value="'+esc(r.pm)+'"></div>'+
-   '<div class="field"><label for="fEq">Equipamento <span class="req">*</span></label><select id="fEq">'+opts(EQUIP,r.equipamento,"Escolha")+'</select></div></div>'+
+   '<div class="field"><label for="fEq">Equipamento <span class="req">*</span></label><select id="fEq">'+opts(r.equipamento&&EQUIP.indexOf(r.equipamento)<0?EQUIP.concat([r.equipamento]):EQUIP,r.equipamento,"Escolha")+'</select></div></div>'+
    '<div class="field"><label for="fEqId">Identificação do equipamento</label><input id="fEqId" placeholder="Ex.: CMB 02" value="'+esc(r.equipId)+'"></div>'+
    '<h3>Falha</h3><div class="field"><label>Teve impacto na produção? <span class="req">*</span></label><div class="chips" data-grp="impactoProd">'+["Sim","Não"].map(function(t){return '<button type="button" class="chip" aria-pressed="'+(r.impactoProd===t)+'" data-v="'+t+'">'+t+'</button>';}).join("")+'</div>'+
    '<span class="hint" id="fTipoInfo"></span></div>'+
