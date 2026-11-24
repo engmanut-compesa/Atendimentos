@@ -398,7 +398,6 @@ function telaCadastrar(v){
   v.innerHTML=cabLogin("Primeiro acesso","Você vai receber um código no seu e-mail para confirmar.")+
    '<form id="fC"><div class="field"><label for="cEmail">E-mail <span class="req">*</span></label><input id="cEmail" type="email" autocomplete="username" placeholder="seu@email.com" required><span class="hint">Pode ser o e-mail da Compesa ou um pessoal (Gmail, Hotmail...).</span></div>'+
    '<div class="field"><label for="cNome">Nome <span class="req">*</span></label><input id="cNome" autocomplete="name" required></div>'+
-   '<div class="field"><label for="cCargo">Cargo <span class="req">*</span></label><input id="cCargo" list="lCargos" placeholder="Escolha ou escreva" required><datalist id="lCargos">'+CARGOS.map(function(x){return '<option value="'+esc(x)+'">';}).join("")+'</datalist></div>'+
    campoOutro("cGer","Gerência",GERENCIAS)+campoOutro("cCoord","Coordenação",COORDENACOES)+
    '<div class="field"><label for="cReg">Regional <span class="req">*</span></label><select id="cReg" required>'+opts(S.regioes,"","Escolha")+'</select></div>'+
    '<div class="field"><label for="cSenha">Crie uma senha <span class="req">*</span></label><input id="cSenha" type="password" autocomplete="new-password" minlength="6" required><span class="hint">Mínimo de 6 caracteres.</span></div>'+
@@ -409,9 +408,9 @@ function telaCadastrar(v){
   ligarOutro("cGer");ligarOutro("cCoord");
   $("#fC").addEventListener("submit",function(e){e.preventDefault();var f=this;
     var coord=valorOutro("cCoord");
-    var d={email:$("#cEmail").value.trim().toLowerCase(),nome:$("#cNome").value.trim(),cargo:$("#cCargo").value.trim(),gerencia:valorOutro("cGer"),coordenacao:coord,equipe:coord,regiao:$("#cReg").value,senha:$("#cSenha").value.trim()};
+    var d={email:$("#cEmail").value.trim().toLowerCase(),nome:$("#cNome").value.trim(),cargo:"",gerencia:valorOutro("cGer"),coordenacao:coord,equipe:coord,regiao:$("#cReg").value,senha:$("#cSenha").value.trim()};
     if(!emailOk(d.email)){$("#cErr").textContent="Digite um e-mail válido.";return;}
-    if(!d.nome||!d.cargo||!d.gerencia||!d.coordenacao||!d.regiao){$("#cErr").textContent="Preencha nome, cargo, gerência, coordenação e regional.";return;}
+    if(!d.nome||!d.gerencia||!d.coordenacao||!d.regiao){$("#cErr").textContent="Preencha nome, gerência, coordenação e regional.";return;}
     if(d.senha.length<6){$("#cErr").textContent="A senha precisa ter pelo menos 6 caracteres.";return;}
     if(d.senha!==$("#cSenha2").value.trim()){$("#cErr").textContent="As senhas não são iguais. Digite a mesma senha nos dois campos.";return;}
     travar(f,true);
